@@ -1,5 +1,6 @@
 import Header from './Header'
 
+import Head from 'next/head'
 import { useState } from 'react'
 import Modal from './Modal'
 import LoginModal from './LoginModal'
@@ -23,6 +24,9 @@ export default function Layout(props) {
 
   return (
     <div>
+      <Head>
+        <script src='https://js.stripe.com/v3/'></script>
+      </Head>
       <Header />
       <main>{props.content}</main>
       {showModal && (
