@@ -1,6 +1,9 @@
 import houses from '../houses.js'
 import House from '../components/House'
 import Layout from '../components/Layout'
+import Cookies from 'cookies'
+import { useStoreActions } from 'easy-peasy'
+import { useEffect } from 'react'
 
 const content = (
   <div>
@@ -23,6 +26,25 @@ const content = (
   </div>
 )
 
-export default function Home() {
+export default function Home({ nextbnb_session }) {
+  const setLoggedIn = useStoreActions((actions) => actions.login.setLoggedIn)
+
+  useEffect(() => {
+    if (nextbnb_session) {
+      setLoggedIn(true)
+    }
+  }, [])
+
   return <Layout content={content} />
+}
+
+export async function getServerSideProps({ req, res, query }) {
+  const cookies = new Cookies(req, res)
+  const nextbnb_session = cookies.get('nextbnb_session')
+
+  return {
+    props: {
+      nextbnb_session: nextbnb_session || null,
+    },
+  }
 }
