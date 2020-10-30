@@ -2,9 +2,10 @@ import Head from 'next/head'
 import Layout from '../../components/Layout'
 import DateRangePicker from '../../components/DateRangePicker'
 import { useState, useEffect } from 'react'
-import { useStoreActions } from 'easy-peasy'
 import Cookies from 'cookies'
 import { House as HouseModel } from '../../model.js'
+import { useStoreActions, useStoreState } from 'easy-peasy'
+import axios from 'axios'
 
 const calcNumberOfNightsBetweenDates = (startDate, endDate) => {
   const start = new Date(startDate) //clone
@@ -30,6 +31,10 @@ export default function House({ house, nextbnb_session }) {
   )
 
   const setLoggedIn = useStoreActions((actions) => actions.login.setLoggedIn)
+  const loggedIn = useStoreState((state) => state.login.loggedIn)
+
+  const [startDate, setStartDate] = useState()
+  const [endDate, setEndDate] = useState()
 
   useEffect(() => {
     if (nextbnb_session) {
@@ -59,6 +64,8 @@ export default function House({ house, nextbnb_session }) {
                   calcNumberOfNightsBetweenDates(startDate, endDate)
                 )
                 setDateChosen(true)
+                setStartDate(startDate)
+                setEndDate(endDate)
               }}
             />
 
@@ -68,14 +75,39 @@ export default function House({ house, nextbnb_session }) {
                 <p>${house.price}</p>
                 <h2>Total price for booking</h2>
                 <p>${(numberOfNightsBetweenDates * house.price).toFixed(2)}</p>
-                <button
-                  className='reserve'
-                  onClick={() => {
-                    setShowLoginModal()
-                  }}
-                >
-                  Reserve
-                </button>{' '}
+                {loggedIn ? (
+                  <button
+                    className='reserve'
+                    onClick={async () => {
+                      try {
+                        const response = await axios.post('/api/reserve', {
+                          houseId: house.id,
+                          startDate,
+                          endDate,
+                        })
+                        if (response.data.status === 'error') {
+                          alert(response.data.message)
+                          return
+                        }
+                        console.log(response.data)
+                      } catch (error) {
+                        console.log(error)
+                        return
+                      }
+                    }}
+                  >
+                    Reserve
+                  </button>
+                ) : (
+                  <button
+                    className='reserve'
+                    onClick={() => {
+                      setShowLoginModal()
+                    }}
+                  >
+                    Log in to Reserve
+                  </button>
+                )}
               </div>
             )}
           </aside>
