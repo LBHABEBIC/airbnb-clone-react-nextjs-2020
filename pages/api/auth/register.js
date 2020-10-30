@@ -23,6 +23,24 @@ export default async (req, res) => {
     )
     return
   }
-  const user = await User.create({ email, password })
-  res.end(JSON.stringify({ status: 'success', message: 'User added' }))
+
+  let user = await User.findOne({ where: { email } })
+
+  if (!user) {
+    user = await User.create({ email, password })
+
+    const sessionToken = randomString(255)
+    const sessionExpiration = new Date()
+    sessionExpiration.setDate(sessionExpiration.getDate() + 30)
+    User.update(
+      {
+        session_token: sessionToken,
+        session_expiration: sessionExpiration,
+      },
+      { where: { email } }
+    )
+    res.end(JSON.stringify({ status: 'success', message: 'User added' }))
+  } else {
+    res.end(JSON.stringify({ status: 'error', message: 'User already exists' }))
+  }
 }
