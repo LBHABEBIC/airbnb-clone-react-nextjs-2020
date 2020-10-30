@@ -20,7 +20,43 @@ const calcNumberOfNightsBetweenDates = (startDate, endDate) => {
   return dayCount
 }
 
-export default function House({ house, nextbnb_session }) {
+const getBookedDates = async (id) => {
+  try {
+    const response = await axios.post(
+      'http://localhost:3000/api/houses/booked',
+      { houseId: id }
+    )
+    if (response.data.status === 'error') {
+      alert(response.data.message)
+      return
+    }
+    return response.data.dates
+  } catch (error) {
+    console.error(error)
+    return
+  }
+}
+
+const canReserve = async (houseId, startDate, endDate) => {
+  try {
+    const response = await axios.post(
+      'http://localhost:3000/api/houses/check',
+      { houseId, startDate, endDate }
+    )
+    if (response.data.status === 'error') {
+      alert(response.data.message)
+      return
+    }
+
+    if (response.data.message === 'busy') return false
+    return true
+  } catch (error) {
+    console.error(error)
+    return
+  }
+}
+
+export default function House({ house, nextbnb_session, bookedDates }) {
   const [dateChosen, setDateChosen] = useState(false)
   const [numberOfNightsBetweenDates, setNumberOfNightsBetweenDates] = useState(
     0
@@ -67,8 +103,8 @@ export default function House({ house, nextbnb_session }) {
                 setStartDate(startDate)
                 setEndDate(endDate)
               }}
+              bookedDates={bookedDates}
             />
-
             {dateChosen && (
               <div>
                 <h2>Price per night</h2>
@@ -79,6 +115,12 @@ export default function House({ house, nextbnb_session }) {
                   <button
                     className='reserve'
                     onClick={async () => {
+                      if (
+                        !(await canReserve(props.house.id, startDate, endDate))
+                      ) {
+                        alert('The dates chosen are not valid')
+                        return
+                      }
                       try {
                         const response = await axios.post('/api/reserve', {
                           houseId: house.id,
@@ -135,11 +177,13 @@ export async function getServerSideProps({ req, res, query }) {
   const cookies = new Cookies(req, res)
   const nextbnb_session = cookies.get('nextbnb_session')
   const house = await HouseModel.findByPk(id)
+  const bookedDates = await getBookedDates(id)
 
   return {
     props: {
       house: house.dataValues,
       nextbnb_session: nextbnb_session || null,
+      bookedDates,
     },
   }
 }
